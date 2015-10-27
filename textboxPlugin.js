@@ -35,17 +35,17 @@
  */
 
 /**
- * The Mobile plugin is for integrating the cocoon.js keyboard events directly
+ * The Textbox plugin is for integrating the cocoon.js keyboard events directly
  * into Phaser. Currently one would otherwise have to use dialogs outside the
  * game to accept keyboard input.
  *
- * @class Phaser.Plugin.Mobile
+ * @class Phaser.Plugin.Textbox
  * @constructor
  * @param {Phaser.Game} game Current game isntance
  * @param {any} [parent] - The parent Group or DisplayObjectContainer that will hold this group, if any. If set to null the Group won't be added to the display list. If undefined it will be added to World by default.
  *
  */
-Phaser.Plugin.Mobile = function (game, parent) {
+Phaser.Plugin.Textbox = function (game, parent) {
     Phaser.Plugin.call(this, game, parent);
 
     /**
@@ -59,25 +59,25 @@ Phaser.Plugin.Mobile = function (game, parent) {
      * @param {text} [text=''] - The default (startign) text string that will be displayed
      * @param {object} [style] - The The style object containing style attributes like font, font size , etc.
      * @param {Phaser.Group} [group] - Optional Group to add the object to. If not specified it will be added to the World group.
-     * @return {Mobile.Textbox} The newly created textbox object
+     * @return {Textbox.Textbox} The newly created textbox object
      */
     game.add.textbox = function (x, y, width, height, text, style, group) {
 
         if (group === undefined) { group = this.world; }
 
-        return group.add(new Phaser.Plugin.Mobile.Textbox(this.game, x, y, width, height, '', style));
+        return group.add(new Phaser.Plugin.Textbox.Textbox(this.game, x, y, width, height, '', style));
 
     };
 };
 
 // Extends the Phaser.Plugin template
-Phaser.Plugin.Mobile.prototype = Object.create(Phaser.Plugin.prototype);
-Phaser.Plugin.Mobile.prototype.constructor = Phaser.Plugin.Mobile;
+Phaser.Plugin.Textbox.prototype = Object.create(Phaser.Plugin.prototype);
+Phaser.Plugin.Textbox.prototype.constructor = Phaser.Plugin.Textbox;
 
 /**
- * @class Mobile.Keyboard
+ * @class Textbox.Keyboard
  */
-Phaser.Plugin.Mobile.Keyboard = {
+Phaser.Plugin.Textbox.Keyboard = {
 
     /**
      * @property {Phaser.Signal} onDeleteBackward - Event fired on delete
@@ -110,7 +110,7 @@ Phaser.Plugin.Mobile.Keyboard = {
     /**
      * Opens the soft keyboard, forwarding the available events into Phaser Signals
      *
-     * @method Mobile.Keyboard#show
+     * @method Textbox.Keyboard#show
      * @param {string} [type='text'] type - set the keyboard type.
      * Options are: 'text', 'num', 'phone', 'email', 'url'
      */
@@ -124,16 +124,16 @@ Phaser.Plugin.Mobile.Keyboard = {
         // Forward all cocoon event into Phaser Signals
         Cocoon.Dialog.showKeyboard( {type: type} ,{
             insertText: function (inserted) {
-                Phaser.Plugin.Mobile.Keyboard.onInsertText.dispatch(inserted);
+                Phaser.Plugin.Textbox.Keyboard.onInsertText.dispatch(inserted);
             },
             deleteBackward: function () {
-                Phaser.Plugin.Mobile.Keyboard.onDeleteBackward.dispatch();
+                Phaser.Plugin.Textbox.Keyboard.onDeleteBackward.dispatch();
             },
             done: function () {
-                Phaser.Plugin.Mobile.Keyboard.onDone.dispatch();
+                Phaser.Plugin.Textbox.Keyboard.onDone.dispatch();
             },
             cancel: function () {
-                Phaser.Plugin.Mobile.Keyboard.onDismiss.dispatch();
+                Phaser.Plugin.Textbox.Keyboard.onDismiss.dispatch();
             }
         });
     },
@@ -141,8 +141,7 @@ Phaser.Plugin.Mobile.Keyboard = {
     /**
      * Close the soft keyboard
      *
-     * @method Mobile.Keyboard#hide
-
+     * @method Textbox.Keyboard#hide
      */
     hide: function () {
 
@@ -150,13 +149,20 @@ Phaser.Plugin.Mobile.Keyboard = {
 
         Cocoon.Dialog.dismissKeyboard();
 
+    },
+
+    removeAllEvents: function () {
+        this.onDone.removeAll();
+        this.onDismiss.removeAll();
+        this.onInsertText.removeAll();
+        this.onDeleteBackward.removeAll();
     }
 };
 
 
 
 /**
- * @class Phaser.Plugin.Mobile.Textbox
+ * @class Phaser.Plugin.Textbox.Textbox
  * @constructor
  *
  * @extends Phaser.Text
@@ -168,10 +174,10 @@ Phaser.Plugin.Mobile.Keyboard = {
  * @param {number} [height=75] - The height of the Textbox.
  * @param {text} [text=''] - The default (startign) text string that will be displayed
  * @param {object} [style] - The The style object containing style attributes like font, font size , etc.
- * @return {Mobile.Textbox} The newly created textbox object
- * @memberof Phaser.Plugin.Mobile
+ * @return {Textbox.Textbox} The newly created textbox object
+ * @memberof Phaser.Plugin.Textbox
  */
-Phaser.Plugin.Mobile.Textbox = function (game, x, y, width, height, text, style) {
+Phaser.Plugin.Textbox.Textbox = function (game, x, y, width, height, text, style) {
 
     x = x || 0;
     y = y || 0;
@@ -198,9 +204,33 @@ Phaser.Plugin.Mobile.Textbox = function (game, x, y, width, height, text, style)
     // Create Phaser Rectange and keep reference
     this.clickableRegion = new Phaser.Rectangle(x, y, width, height);
 
+    // Put the box in Textbox
+    this.backgroundBox = this.game.add.graphics(x, y);
+    this.backgroundBox.lineStyle(2, 0x000000, 0.5);
+    this.backgroundBox.beginFill(0xFFFFFF, 1);
+    this.backgroundBox.bounds = new PIXI.Rectangle(0,0, width, height);
+    this.backgroundBox.drawRect(0, 0, width, height);
+    this.backgroundBox.boundsPadding = 0;
+    this.backgroundBox.endFill();
+};
 
-    // handle click
-    this.game.input.onDown.add( function handlePointerDown (pointer) {
+// Extends Phaser.Text
+Phaser.Plugin.Textbox.Textbox.prototype = Object.create(Phaser.Text.prototype);
+Phaser.Plugin.Textbox.Textbox.prototype.constructor = Phaser.Plugin.Textbox.Textbox;
+
+
+/**
+ * Enable the Keyboard
+ *
+ * @method Phaser.Plugin.Textbox.prototype.enableKeyboard
+ * @memberof Phaser.Plugin.Textbox.Textbox
+ * @param {string} [type='text'] type - set the keyboard type.
+ * Options are: 'text', 'num', 'phone', 'email', 'url'
+ */
+Phaser.Plugin.Textbox.Textbox.prototype.enableKeyboard = function (type) {
+
+    // Store signal binding
+    this.focusCheck = this.game.input.onDown.add( function handlePointerDown (pointer) {
 
         if (this.clickableRegion.contains(pointer.x, pointer.y)) {
 
@@ -213,39 +243,13 @@ Phaser.Plugin.Mobile.Textbox = function (game, x, y, width, height, text, style)
 
     }, this);
 
-    // Put the box in Textbox
-    this.backgroundBox = this.game.add.graphics(x, y);
-    this.backgroundBox.lineStyle(2, 0x000000, 0.5);
-    this.backgroundBox.beginFill(0xFFFFFF, 1);
-    this.backgroundBox.bounds = new PIXI.Rectangle(0,0, width, height);
-    this.backgroundBox.drawRect(0, 0, width, height);
-    this.backgroundBox.boundsPadding = 0;
-    this.backgroundBox.endFill();
-};
-
-// Extends Phaser.Text
-Phaser.Plugin.Mobile.Textbox.prototype = Object.create(Phaser.Text.prototype);
-Phaser.Plugin.Mobile.Textbox.prototype.constructor = Phaser.Plugin.Mobile.Textbox;
-
-
-/**
- * Enable the Keyboard
- *
- * @method Phaser.Plugin.Mobile.prototype.enableKeyboard
- * @memberof Phaser.Plugin.Mobile.Textbox
- */
-Phaser.Plugin.Mobile.Textbox.prototype.enableKeyboard = function (type) {
-
     this.events.onFocus.add(function gotFocus () {
         this.text = '';
-        Phaser.Plugin.Mobile.Keyboard.show(type);
+        Phaser.Plugin.Textbox.Keyboard.show(type);
 
-        Phaser.Plugin.Mobile.Keyboard.onInsertText.removeAll();
-        Phaser.Plugin.Mobile.Keyboard.onDeleteBackward.removeAll();
+        Phaser.Plugin.Textbox.Keyboard.removeAllEvents();
 
-
-
-        Phaser.Plugin.Mobile.Keyboard.onDone.add(function () {
+        Phaser.Plugin.Textbox.Keyboard.onDone.add(function () {
 
             this.events.onComplete.dispatch(this);
             this.events.onBlur.dispatch(this);
@@ -254,7 +258,7 @@ Phaser.Plugin.Mobile.Textbox.prototype.enableKeyboard = function (type) {
 
 
 
-        Phaser.Plugin.Mobile.Keyboard.onDismiss.add(function () {
+        Phaser.Plugin.Textbox.Keyboard.onDismiss.add(function () {
 
             this.events.onBlur.dispatch(this);
 
@@ -263,7 +267,7 @@ Phaser.Plugin.Mobile.Textbox.prototype.enableKeyboard = function (type) {
 
 
 
-        Phaser.Plugin.Mobile.Keyboard.onInsertText.add(function insertingText (inserted) {
+        Phaser.Plugin.Textbox.Keyboard.onInsertText.add(function insertingText (inserted) {
 
             this.setText(this.text += inserted);
 
@@ -271,7 +275,7 @@ Phaser.Plugin.Mobile.Textbox.prototype.enableKeyboard = function (type) {
 
 
 
-        Phaser.Plugin.Mobile.Keyboard.onDeleteBackward.add(function deletingText () {
+        Phaser.Plugin.Textbox.Keyboard.onDeleteBackward.add(function deletingText () {
 
             var oldText = this.text;
             if (oldText.length > 0) {
@@ -284,12 +288,23 @@ Phaser.Plugin.Mobile.Textbox.prototype.enableKeyboard = function (type) {
     }, this);
 
     this.events.onBlur.add(function lostFocus () {
-        Phaser.Plugin.Mobile.Keyboard.hide();
 
-        Phaser.Plugin.Mobile.Keyboard.onDone.removeAll();
-        Phaser.Plugin.Mobile.Keyboard.onDismiss.removeAll();
-        Phaser.Plugin.Mobile.Keyboard.onInsertText.removeAll();
-        Phaser.Plugin.Mobile.Keyboard.onDeleteBackward.removeAll();
+        Phaser.Plugin.Textbox.Keyboard.hide();
+
+        Phaser.Plugin.Textbox.Keyboard.removeAllEvents();
 
     }, this);
+};
+
+/**
+ * Disable the keyboard, stop the global click listener
+ *
+ * @method Phaser.Plugin.Textbox.prototype.disableKeyboard
+ * @memberof Phaser.Plugin.Textbox.Textbox
+ */
+Phaser.Plugin.Textbox.Textbox.prototype.disableKeyboard = function () {
+
+    this.events.onBlur.dispatch();
+    this.focusCheck.detach();
+
 };
